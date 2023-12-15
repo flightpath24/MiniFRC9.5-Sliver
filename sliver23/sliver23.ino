@@ -20,12 +20,31 @@ NoU_Motor rearRightMotor(2);
 
   // Arm
 NoU_Servo armServo(1);
-//NoU_Motor armMotor(5);
+NoU_Motor armMotor(5);
 NoU_Servo wristServo(4);
 
   // Intake
 NoU_Servo intakeRightServo(2);
 NoU_Servo intakeLeftServo(3);
+
+  // Position variables
+int throttle = 0;
+int rotation = 0;
+int armServoAngle = 0;
+int intakeRightServoAngle = 90;
+int intakeLeftServoAngle = 90;
+int wristServoAngle = 0;
+int armSpeed = 0;
+
+  // Auto and setpoint variables
+int autoSequence = 0;
+int autoStartTime = 0;
+int autoTimer = 0;
+bool autoStarted = false;
+int sequenceStartTime = 0;
+int currentTime = 0;
+int setpoint = -1;
+int localTime = 0;
 
 // This creates the drivetrain object, you shouldn't have to mess with this
 NoU_Drivetrain drivetrain(&frontLeftMotor, &frontRightMotor, &rearLeftMotor, &rearRightMotor);
@@ -49,17 +68,16 @@ void setup() {
 
 void loop() {
 // Here we define the variables we use in the loop
-    int throttle = 0;
-    int rotation = 0;
-    int armServoAngle = 0;
-    int intakeRightServoAngle = 90;
-    int intakeLeftServoAngle = 90;
-    int wristServoAngle = 0;
+    throttle = 0;
+    rotation = 0;
+
+    currentTime = millis();
+    autoTimer = currentTime - autoStartTime;
 
 // Drivetrain controls
-    if (AlfredoConnect.keyHeld(Key::S)) {
+    if (AlfredoConnect.keyHeld(Key::W)) {
         throttle = 1;
-    } else if (AlfredoConnect.keyHeld(Key::W)) {
+    } else if (AlfredoConnect.keyHeld(Key::S)) {
         throttle = -1;
     }
     if (AlfredoConnect.keyHeld(Key::D)) {
@@ -69,45 +87,428 @@ void loop() {
     }
 
 // Main arm pivot controls
-    if (AlfredoConnect.keyHeld(Key::Q)) {
+    if (AlfredoConnect.keyHeld(Key::O)) {
         armServoAngle = 120;
     }
-    else if (AlfredoConnect.keyHeld(Key::E)) {
+    else if (AlfredoConnect.keyHeld(Key::L)) {
         armServoAngle = 180;
     }
     else {
         armServoAngle = 0;
     }
 
+// Arm extender controls
+    if (AlfredoConnect.keyHeld(Key::Y)) {
+        armSpeed = 1;
+    } else if (AlfredoConnect.keyHeld(Key::H)) {
+        armSpeed = -1;
+    } else {
+      armSpeed = 0;
+    }
+
 // Intake controls
     if (AlfredoConnect.keyHeld(Key::Z)) {
         intakeRightServoAngle = 30;
-        intakeLeftServoAngle = 150;
+        intakeLeftServoAngle = 180;
     }
     else {
-        intakeRightServoAngle = 90;
-        intakeLeftServoAngle = 90;
+        intakeRightServoAngle = 105;
+        intakeLeftServoAngle = 115;
     }
 
 // Wrist controls
     if (AlfredoConnect.keyHeld(Key::T)) {
         wristServoAngle = 90;
     }
-    else if (AlfredoConnect.keyHeld(Key::G)) {
+    else if (AlfredoConnect.keyHeld(Key::Y)) {
         wristServoAngle = 180;
     }
     else {
         wristServoAngle = 0;
     }
 
+// Trigger autos
+    if (AlfredoConnect.keyHeld(Key::Digit1)) {
+      autoSequence = 1;
+    } else if (AlfredoConnect.keyHeld(Key::Digit2)) {
+      autoSequence = 3;
+    }
+
+// Setpoints
+    if (AlfredoConnect.keyHeld(Key::G)) {
+      setpoint = 1;
+    } else if (AlfredoConnect.keyHeld(Key::U)) {
+      setpoint = 4;
+    } else if (AlfredoConnect.keyHeld(Key::J)) {
+      setpoint = 3;
+    } else if (AlfredoConnect.keyHeld(Key::N)) {
+      setpoint = 2;
+    }
+    
+    smartControl();
 // Push angles and speeds to the robot
-    drivetrain.arcadeDrive(throttle, rotation);
+    bluetooth.println(armSpeed);
+    drivetrain.curvatureDrive(throttle, rotation);
     armServo.write(armServoAngle);
     intakeRightServo.write(intakeRightServoAngle);
     intakeLeftServo.write(intakeLeftServoAngle);
     wristServo.write(wristServoAngle);
+    armMotor.set(armSpeed);
 
 // No need to mess with this code
     AlfredoConnect.update();
     RSL::update();
 }
+
+//
+void smartControl() {
+  switch(setpoint) {
+    case 0:
+      stow();
+      return;
+    case 1:
+      groundFront();
+      return;
+    case 2:
+      lowRow();
+      break;
+    case 3:
+      midRow();
+      break;
+    case 4:
+      highRow();
+      return;
+    case 5:
+      //doubleSubFront();
+      break;
+    case 6:
+      //doubleSubRear();
+      break;
+    default:
+      // Do Nothing
+      break;
+  }
+
+  switch(autoSequence) {
+    case 1:
+      // Mobility only
+      mobilityAuto();
+      return;
+    case 2:
+      //highPieceMobilityAuto();
+      break;
+    case 3:
+      midPieceAuto();
+      break;
+    case 4:
+      //highPieceDockAuto();
+      break;
+    case 5:
+      //highPiecePickupAuto();
+      break;
+    default:
+      // Teleop; do nothing
+      break;
+  }
+}
+
+void mobilityAuto() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+  } else if(autoTimer < 1000) {
+    throttle = 1;
+    return;
+  } else {
+    autoSequence = 0;
+    autoStarted = false;
+  }
+}
+
+void midPieceAuto() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+    localTime = 0;
+  } else if(autoTimer < 1000) {
+    armServoAngle = 80;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 1500) {
+    armServoAngle = 85;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    localTime = currentTime;
+    return;
+  } else if (autoTimer < 2100) {
+    armServoAngle = 90;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 0;
+    armSpeed = 0;
+    return;
+  } else if (autoTimer > 2100) {
+    autoStarted = false;
+    autoSequence = 0;
+    return;
+  } else {
+    armServoAngle = 85;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    return;
+  }
+}
+
+void groundFront() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+    localTime = 0;
+  } else if(autoTimer < 100) {
+    armServoAngle = 10;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 150) {
+    armServoAngle = 10;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 90;
+    armSpeed = 1;
+    return;
+  } else if(AlfredoConnect.keyHeld(Key::E)) {
+    armServoAngle = 10;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 180;
+    armSpeed = 0;
+    localTime = currentTime;
+    return;
+  } else if (150 > currentTime - localTime && currentTime - localTime > 100) {
+    setpoint = 0;
+    autoStarted = false;
+    return;
+  } else if (currentTime - localTime > 150) {
+    armServoAngle = 10;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 180;
+    armSpeed = 0;
+    return;
+  }
+}
+
+void highRow() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+    localTime = 0;
+  } else if(autoTimer < 200) {
+    armServoAngle = 85;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 350) {
+    armServoAngle = 85;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 1;
+    return;
+  } else if(autoTimer < 500) {
+    armServoAngle = 95;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 600) {
+    armServoAngle = 105;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 700) {
+    armServoAngle = 115;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 1100) {
+    armServoAngle = 125;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 130;
+    armSpeed = 0;
+    return;
+  } else if(AlfredoConnect.keyHeld(Key::E) && localTime == 0) {
+    armServoAngle = 125;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 130;
+    armSpeed = 0;
+    localTime = currentTime;
+    return;
+  } else if (900 > currentTime - localTime && currentTime - localTime > 500) {
+    armServoAngle = 90;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if (localTime != 0 && currentTime - localTime > 900) {
+    autoStarted = false;
+    setpoint = 0;
+    return;
+  } else if (currentTime - localTime > 900 && localTime == 0) {
+    armServoAngle = 125;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 130;
+    armSpeed = 0;
+    return;
+  } else {
+    armServoAngle = 125;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 130;
+    armSpeed = 0;
+    return;
+  }
+}
+
+void midRow() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+    localTime = 0;
+  } else if(autoTimer < 100) {
+    armServoAngle = 80;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(AlfredoConnect.keyHeld(Key::E) && localTime == 0) {
+    armServoAngle = 85;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    localTime = currentTime;
+    return;
+  } else if (localTime != 0 && currentTime - localTime < 600) {
+    armServoAngle = 90;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 0;
+    armSpeed = 0;
+    return;
+  } else if (localTime != 0 && currentTime - localTime > 600) {
+    autoStarted = false;
+    setpoint = 0;
+    return;
+  } else {
+    armServoAngle = 85;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    return;
+  }
+}
+
+void lowRow() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+    localTime = 0;
+  } else if(autoTimer < 100) {
+    armServoAngle = 90;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 0;
+    armSpeed = 0;
+    return;
+  } else if(AlfredoConnect.keyHeld(Key::E) && localTime == 0) {
+    armServoAngle = 90;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 0;
+    armSpeed = 0;
+    localTime = currentTime;
+    return;
+  } else if (localTime != 0 && currentTime - localTime < 600) {
+    armServoAngle = 90;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 0;
+    armSpeed = 0;
+    return;
+  } else if (localTime != 0 && currentTime - localTime > 600) {
+    autoStarted = false;
+    setpoint = 0;
+    return;
+  } else {
+    armServoAngle = 90;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 0;
+    return;
+  }
+}
+
+void stow() {
+  if(autoStarted == false) {
+    autoStarted = true;
+    autoStartTime = currentTime;
+    localTime = 0;
+  } else if(autoTimer < 100) {
+    armServoAngle = 10;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = 0;
+    return;
+  } else if(autoTimer < 1000) {
+    armServoAngle = 0;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 90;
+    armSpeed = -1;
+    return;
+  } else {
+    armServoAngle = 0;
+    intakeRightServoAngle = 105;
+    intakeLeftServoAngle = 115;
+    wristServoAngle = 0;
+    armSpeed = 0;
+    setpoint = -1;
+    autoStarted = false;
+    return;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
