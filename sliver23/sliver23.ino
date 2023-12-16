@@ -33,7 +33,7 @@ int rotation = 0;
 int armServoAngle = 0;
 int intakeRightServoAngle = 90;
 int intakeLeftServoAngle = 90;
-int wristServoAngle = 15;
+int wristServoAngle = 0;
 int armSpeed = 0;
 
   // Auto and setpoint variables
@@ -124,7 +124,7 @@ void loop() {
         wristServoAngle = 180;
     }
     else {
-        wristServoAngle = 15;
+        wristServoAngle = 0;
     }
 
 // Trigger autos
@@ -255,7 +255,7 @@ void midPieceAuto() {
     armServoAngle = 105;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if (autoTimer > 2100) {
@@ -289,7 +289,7 @@ void midPieceMobilityAuto() {
     armServoAngle = 105;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if(autoTimer < 2200) { //stow
@@ -310,7 +310,7 @@ void midPieceMobilityAuto() {
     armServoAngle = 0;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if(autoTimer < 4300) { // drive
@@ -347,7 +347,7 @@ void midPieceMobilityDockAuto() {
     armServoAngle = 105;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if(autoTimer < 2200) { //stow
@@ -368,16 +368,16 @@ void midPieceMobilityDockAuto() {
     armServoAngle = 0;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if(autoTimer < 4600) { //drive
     throttle = 1;
     return;
-  } else if(autoTimer < 5300) {
+  } else if(autoTimer < 5500) {
     throttle = -1;
     return;
-  } else if (autoTimer > 5000) {
+  } else if (autoTimer > 500) {
     autoStarted = false;
     autoSequence = 0;
     return;
@@ -434,21 +434,21 @@ void doubleSubRear() {
     armServoAngle = 80;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 75;
+    wristServoAngle = 90;
     armSpeed = 0;
     return;
   } else if(autoTimer < 1000) {
-    armServoAngle = 150;
+    armServoAngle = 148;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 75;
+    wristServoAngle = 105;
     armSpeed = 0;
     return;
   } else if(AlfredoConnect.keyHeld(Key::E)) {
-    armServoAngle = 150;
+    armServoAngle = 148;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 75;
+    wristServoAngle = 105;
     armSpeed = 0;
     localTime = currentTime;
     return;
@@ -457,7 +457,7 @@ void doubleSubRear() {
     autoStarted = false;
     return;
   } else if (currentTime - localTime > 150) {
-    armServoAngle = 150;
+    armServoAngle = 148;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
     wristServoAngle = 105;
@@ -573,7 +573,7 @@ void midRow() {
     armServoAngle = 105;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if (localTime != 0 && currentTime - localTime > 600) {
@@ -598,14 +598,14 @@ void lowRow() {
     armServoAngle = 90;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if(AlfredoConnect.keyHeld(Key::E) && localTime == 0) {
     armServoAngle = 90;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     localTime = currentTime;
     return;
@@ -613,7 +613,7 @@ void lowRow() {
     armServoAngle = 90;
     intakeRightServoAngle = 30;
     intakeLeftServoAngle = 180;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else if (localTime != 0 && currentTime - localTime > 600) {
@@ -624,7 +624,7 @@ void lowRow() {
     armServoAngle = 90;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     return;
   }
 }
@@ -652,14 +652,14 @@ void stow() {
     armServoAngle = 0;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     return;
   } else {
     armServoAngle = 0;
     intakeRightServoAngle = 105;
     intakeLeftServoAngle = 115;
-    wristServoAngle = 15;
+    wristServoAngle = 0;
     armSpeed = 0;
     setpoint = -1;
     autoStarted = false;
