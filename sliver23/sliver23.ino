@@ -313,10 +313,10 @@ void midPieceMobilityAuto() {
     wristServoAngle = 0;
     armSpeed = 0;
     return;
-  } else if(autoTimer < 4300) { // drive
+  } else if(autoTimer < 4400) { // drive
     throttle = 1;
     return;
-  } else if (autoTimer > 4300) {
+  } else if (autoTimer > 4400) {
     autoStarted = false;
     autoSequence = 0;
     return;
@@ -568,6 +568,13 @@ void midRow() {
     wristServoAngle = 90;
     armSpeed = 0;
     localTime = currentTime;
+    return;
+  } else if (localTime != 0 && currentTime - localTime < 300) {
+    armServoAngle = 105;
+    intakeRightServoAngle = 30;
+    intakeLeftServoAngle = 180;
+    wristServoAngle = 45;
+    armSpeed = 0;
     return;
   } else if (localTime != 0 && currentTime - localTime < 600) {
     armServoAngle = 105;
